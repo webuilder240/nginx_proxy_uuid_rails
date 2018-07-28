@@ -1,0 +1,38 @@
+version: '2'
+services:
+  datastore:
+    build: containers/datastore
+
+  nginx_tls:
+    build: containers/nginx_tls
+    ports:
+      - '20000:80'
+    volumes_from:
+      - datastore
+    links:
+      - nginx_rails_proxy
+
+  nginx_rails_proxy:
+    build: containers/nginx_rails_proxy
+    ports:
+      - '9999:80'
+    volumes_from:
+      - datastore
+    links:
+      - app
+
+  app:
+    build: .
+    command:
+      [ "bash", "-c", "rm -f tmp/pids/server.pid; ./bin/rails server -b 0.0.0.0" ]
+    ports:
+      - '3000:3000'
+    mem_limit: 384M
+    environment:
+      RAILS_ENV: development
+      DISABLE_SPRING: "1"
+      RAILS_LOG_TO_STDOUT: "true"
+    volumes_from:
+      - datastore
+    volumes:
+       - ".:/usr/src/app"
